@@ -11,6 +11,7 @@ interface ResumoData {
   pagamentos: Record<string, Pagamento>
   totais_semanas: Record<string, number>
   wednesdays: string[]
+  semanas: string[]
 }
 
 interface SummaryData {
@@ -35,26 +36,22 @@ function formatCurrency(value: number): string {
   }).format(value)
 }
 
-function formatWeekLabel(index: number, wednesday: string): string {
-  if (index === 0) return 'Vencido'
-  const date = new Date(wednesday)
-  return `Sem ${index} (${date.getDate()}/${String(date.getMonth() + 1).padStart(2, '0')})`
+function formatWeekLabel(weekKey: string): string {
+  const parts = weekKey.replace('semana_', '').split('_')
+  const weekNumber = parseInt(parts[0], 10)
+  const year = parseInt(parts[1], 10)
+  return `Semana ${weekNumber}/${year}`
 }
 
-function getWeekColumns(wednesdays: string[]): Array<{ index: number; date: string }> {
-  const columns: Array<{ index: number; date: string }> = [{ index: 0, date: '' }]
-
-  for (let i = 0; i < Math.min(wednesdays.length, 12); i++) {
-    columns.push({ index: i + 1, date: wednesdays[i] })
-  }
-
-  return columns
+function getWeekColumns(semanas: string[]): string[] {
+  return semanas
 }
 
 function App() {
   const [pagamentos, setPagamentos] = useState<Record<string, Pagamento>>({})
   const [summary, setSummary] = useState<SummaryData | null>(null)
-  const [weekColumns, setWeekColumns] = useState<Array<{ index: number; date: string }>>([])
+  const [weekColumns, setWeekColumns] = useState<string[]>([])
+  const [totalVencido, setTotalVencido] = useState<number>(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,8 +59,12 @@ function App() {
         const response = await axios.get<ResumoData>('/api/pagamentos')
         setPagamentos(response.data.pagamentos)
 
-        const columns = getWeekColumns(response.data.wednesdays)
+        const columns = getWeekColumns(response.data.semanas)
         setWeekColumns(columns)
+
+        // Calcular total vencido (semana 25/2026)
+        const vencido = response.data.totais_semanas['semana_25_2026'] || 0
+        setTotalVencido(vencido)
 
         const summaryResponse = await axios.get<SummaryData>('/api/resumo')
         setSummary(summaryResponse.data)
@@ -75,6 +76,8 @@ function App() {
     fetchData()
   }, [])
 
+  const codigosDebitoDirecto = ['0243', '0303', '0308', '1009', '1028', '1035', '1114']
+
   const sortedFornecedores = Object.entries(pagamentos)
     .sort((a, b) => {
       const numA = parseInt(a[0].slice(-4), 10)
@@ -82,68 +85,102 @@ function App() {
       return numA - numB
     })
 
-  return (
-    <div className="pagamentos-container">
-      <header className="pagamentos-header">
-        <h1>Planeamento de Pagamentos - Documentos a pagar por semana em: {formatDate(new Date())}</h1>
-      </header>
+  const fornecedoresTransferenciaComDivida = sortedFornecedores.filter(
+    ([codigo, dados]) =>
+      !codigosDebitoDirecto.includes(codigo.slice(-4)) &&
+      (dados.total_divida as number) >= 0
+  )
 
-      {summary && (
-        <div className="summary-cards">
-          <div className="summary-card">
-            <div className="card-value">{formatCurrency(summary.total_geral)}</div>
-            <div className="card-label">Total a Pagar</div>
-          </div>
-          <div className="summary-card">
-            <div className="card-value">{summary.num_fornecedores}</div>
-            <div className="card-label">Fornecedores</div>
-          </div>
-        </div>
-      )}
+  const fornecedoresTransferenciaComCredito = sortedFornecedores.filter(
+    ([codigo, dados]) =>
+      !codigosDebitoDirecto.includes(codigo.slice(-4)) &&
+      (dados.total_divida as number) < 0
+  )
 
-      <div className="table-container">
-        <table className="pagamentos-table">
-          <thead>
-            <tr>
-              <th className="col-forn">Forn. Nº</th>
-              <th className="col-nome">Fornecedor</th>
-              {weekColumns.map((col) => (
-                <th key={col.index} className="col-semana">
-                  {formatWeekLabel(col.index, col.date)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedFornecedores.map(([codigo, dados]) => (
-              <tr key={codigo}>
-                <td className="col-forn"><strong>{codigo.slice(-4)}</strong></td>
-                <td className="col-nome">{dados.nome}</td>
-                {weekColumns.map((col) => {
-                  const chaveWeek = `semana_${col.index}`
-                  const valor = (dados[chaveWeek] as number) || 0
-                  return (
-                    <td key={col.index} className="col-semana text-right">
-                      {valor > 0 ? formatCurrency(valor) : '-'}
-                    </td>
-                  )
-                })}
-              </tr>
+  const fornecedoresDebito = sortedFornecedores.filter(
+    ([codigo]) => codigosDebitoDirecto.includes(codigo.slice(-4))
+  )
+
+  const renderTable = (fornecedores: typeof sortedFornecedores, titulo: string) => (
+    <>
+      <div className="table-title">{titulo}</div>
+      <table className="pagamentos-table">
+        <thead>
+          <tr>
+            <th className="col-forn">Forn. Nº</th>
+            <th className="col-nome">Fornecedor</th>
+            {weekColumns.map((col) => (
+              <th key={col} className="col-semana">
+                {formatWeekLabel(col)}
+              </th>
             ))}
-            <tr className="totals-row">
-              <td colSpan={2} className="col-total"><strong>TOTAL</strong></td>
+            <th className="col-total">Total em Dívida</th>
+          </tr>
+        </thead>
+        <tbody>
+          {fornecedores.map(([codigo, dados]) => (
+            <tr key={codigo}>
+              <td className="col-forn"><strong>{codigo.slice(-4)}</strong></td>
+              <td className="col-nome">{dados.nome}</td>
               {weekColumns.map((col) => {
-                const chaveWeek = `semana_${col.index}`
-                const total = summary?.totais_semanas[chaveWeek] || 0
+                const valor = (dados[col] as number) || 0
                 return (
-                  <td key={col.index} className="col-semana text-right">
-                    <strong>{total > 0 ? formatCurrency(total) : '-'}</strong>
+                  <td key={col} className="col-semana text-right">
+                    {valor > 0 ? formatCurrency(valor) : '-'}
                   </td>
                 )
               })}
+              <td className="col-total text-right">
+                <strong>{formatCurrency((dados.total_divida as number) || 0)}</strong>
+              </td>
             </tr>
-          </tbody>
-        </table>
+          ))}
+          <tr className="totals-row">
+            <td colSpan={2} className="col-total"><strong>TOTAL</strong></td>
+            {weekColumns.map((col) => {
+              const total = fornecedores.reduce((acc, [codigo]) => {
+                const valor = (pagamentos[codigo]?.[col] as number) || 0
+                return acc + valor
+              }, 0)
+              return (
+                <td key={col} className="col-semana text-right">
+                  <strong>{total > 0 ? formatCurrency(total) : '-'}</strong>
+                </td>
+              )
+            })}
+            <td className="col-total text-right">
+              <strong>
+                {formatCurrency(
+                  fornecedores.reduce((acc, [codigo]) => acc + ((pagamentos[codigo]?.total_divida as number) || 0), 0)
+                )}
+              </strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  )
+
+  return (
+    <div className="pagamentos-container">
+      <header className="pagamentos-header">
+        <h1>
+          CLÁSSICO DESPORTIVO - Planeamento de Pagamentos - Documentos a pagar por semana em: {formatDate(new Date())}
+          <span className="header-total-vencido">Total Vencido: {formatCurrency(totalVencido)}</span>
+        </h1>
+        {summary && (
+          <div className="header-total">
+            <span className="header-total-label">Total a Pagar:</span>
+            <span className="header-total-value">{formatCurrency(summary.total_geral)}</span>
+          </div>
+        )}
+      </header>
+
+
+      <div className="table-container">
+        {renderTable(fornecedoresTransferenciaComDivida, 'FORNECEDORES - TRANSFERÊNCIA BANCÁRIA')}
+        {renderTable(fornecedoresDebito, 'FORNECEDORES - DÉBITO DIRECTO')}
+        {renderTable(fornecedoresTransferenciaComCredito, 'FORNECEDORES - COM CRÉDITOS')}
       </div>
     </div>
   )

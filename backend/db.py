@@ -6,29 +6,35 @@ import os
 def get_connection():
     conn_str = (
         r'Driver={ODBC Driver 18 for SQL Server};'
-        r'Server=CLASSICO-PC\SQLEXPRESS;'
+        r'Server=TSERVER\SQLSERVER;'
         r'Database=DBClassico;'
         r'Trusted_Connection=yes;'
+        r'TrustServerCertificate=yes;'
     )
     return pyodbc.connect(conn_str)
 
 def calculate_week_number(data_vencimento):
-    """Calcula a semana de vencimento baseado na data.
-    Semana 0: Vencido (data <= hoje)
-    Semana 1-N: Próximas semanas de quarta a quarta
+    """Calcula a semana ISO de vencimento.
+    Retorna string no formato 'XX_YYYY' (semana_ano).
+    Faturas vencidas (data <= hoje) são agrupadas na semana atual.
     """
     today = datetime.now().date()
 
     if isinstance(data_vencimento, datetime):
         data_vencimento = data_vencimento.date()
 
+    # Se a fatura já venceu, agrupa na semana atual
     if data_vencimento <= today:
-        return 0
+        iso_calendar = today.isocalendar()
+        year = iso_calendar[0]  # Ano
+        week_num = iso_calendar[1]  # Semana
+        return f"{week_num}_{year}"
 
-    days_until = (data_vencimento - today).days
-    week_number = (days_until + 6) // 7
-
-    return max(1, week_number)
+    # Caso contrário, usa a semana de vencimento
+    iso_calendar = data_vencimento.isocalendar()
+    year = iso_calendar[0]
+    week_num = iso_calendar[1]
+    return f"{week_num}_{year}"
 
 def get_wednesday_dates(num_weeks=13):
     """Retorna as datas das próximas quartas-feiras (data de pagamento)."""
@@ -50,7 +56,12 @@ def get_wednesday_dates(num_weeks=13):
 
 def get_pagamentos_por_semana():
     """Retorna documentos agrupados por semana e fornecedor."""
-    conn = get_connection()
+    try:
+        conn = get_connection()
+    except Exception as e:
+        print(f"Erro de conexao: {e}")
+        return {}, []
+
     cursor = conn.cursor()
 
     ano_atual = datetime.now().year
@@ -72,15 +83,20 @@ def get_pagamentos_por_semana():
     ORDER BY doc.Codigo_Conta, doc.Data_Vencimento
     """
 
-    cursor.execute(query)
-    rows = cursor.fetchall()
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    except Exception as e:
+        print(f"Erro ao executar query: {e}")
+        conn.close()
+        return {}, []
 
     pagamentos = defaultdict(lambda: defaultdict(float))
     documentos_por_semana = defaultdict(lambda: defaultdict(int))
 
     for row in rows:
         codigo_conta = row[0]
-        valor = row[4]
+        valor = float(row[4])
         data_vencimento = row[3]
         nome_fornecedor = row[5]
 
@@ -98,18 +114,31 @@ def get_pagamentos_por_semana():
     return dict(pagamentos), get_wednesday_dates()
 
 def get_resumo_pagamentos():
-    """Retorna totais por semana."""
+    """Retorna totais por semana com dados formatados."""
     pagamentos, wednesdays = get_pagamentos_por_semana()
 
     totais_semanas = defaultdict(float)
+    todas_as_semanas = set()
 
+    # Calcular semanas e totais
     for fornecedor_data in pagamentos.values():
+        total_fornecedor = 0
         for key, valor in fornecedor_data.items():
-            if key != "nome":
+            if key != "nome" and key != "total_divida" and key.startswith("semana_"):
                 totais_semanas[key] += valor
+                total_fornecedor += valor
+                todas_as_semanas.add(key)
+        fornecedor_data["total_divida"] = total_fornecedor
+
+    # Ordenar semanas por ano e depois por número de semana
+    semanas_ordenadas = sorted(todas_as_semanas, key=lambda x: (
+        int(x.replace("semana_", "").split("_")[1]),
+        int(x.replace("semana_", "").split("_")[0])
+    ))
 
     return {
         "pagamentos": pagamentos,
         "totais_semanas": dict(totais_semanas),
-        "wednesdays": [d.isoformat() for d in wednesdays]
+        "wednesdays": [d.isoformat() for d in wednesdays],
+        "semanas": semanas_ordenadas
     }
