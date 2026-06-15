@@ -1,0 +1,138 @@
+.pagamentos-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+}
+
+.pagamentos-header {
+  background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
+  color: white;
+  padding: 16px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagamentos-header h1 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  margin-bottom: 12px;
+}
+
+.summary-card {
+  background: #1a1a1a;
+  color: white;
+  padding: 12px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.card-label {
+  font-size: 12px;
+  color: #b0b0b0;
+}
+
+.table-container {
+  flex: 1;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.pagamentos-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  font-size: 13px;
+}
+
+.pagamentos-table thead tr {
+  background-color: white;
+  border-bottom: 0.5px solid #d0d0d0;
+}
+
+.pagamentos-table th {
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  border-right: 0.5px solid #e8e8e8;
+  height: 22px;
+}
+
+.pagamentos-table th:last-child {
+  border-right: none;
+}
+
+.pagamentos-table tbody tr {
+  border-bottom: 0.5px solid #e8e8e8;
+  height: 22px;
+}
+
+.pagamentos-table tbody tr:nth-child(odd) {
+  background-color: white;
+}
+
+.pagamentos-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.pagamentos-table td {
+  padding: 6px 8px;
+  border-right: 0.5px solid #e8e8e8;
+}
+
+.pagamentos-table td:last-child {
+  border-right: none;
+}
+
+.col-forn {
+  width: 80px;
+  text-align: center;
+}
+
+.col-nome {
+  min-width: 150px;
+}
+
+.col-semana {
+  width: 90px;
+  text-align: right;
+}
+
+.col-total {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.totals-row {
+  background-color: #f0f0f0 !important;
+  font-weight: 600;
+  border-top: 1px solid #d0d0d0;
+  border-bottom: 1px solid #d0d0d0;
+}
+
+.totals-row td {
+  padding: 6px 8px;
+  border-right: 0.5px solid #d0d0d0;
+}
+
+.totals-row td:last-child {
+  border-right: none;
+}
