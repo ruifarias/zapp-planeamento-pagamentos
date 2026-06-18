@@ -36,11 +36,15 @@ function formatCurrency(value: number): string {
   }).format(value)
 }
 
-function formatWeekLabel(weekKey: string): string {
+function formatWeekLabel(weekKey: string): JSX.Element {
   const parts = weekKey.replace('semana_', '').split('_')
   const weekNumber = parseInt(parts[0], 10)
   const year = parseInt(parts[1], 10)
-  return `Semana ${weekNumber}/${year}`
+  return (
+    <>
+      Semana<br/>{weekNumber}/{year}
+    </>
+  )
 }
 
 function getWeekColumns(semanas: string[]): string[] {
