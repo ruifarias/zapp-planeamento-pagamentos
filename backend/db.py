@@ -4,11 +4,17 @@ from collections import defaultdict
 import os
 
 def get_connection():
+    server = os.getenv('DB_SERVER', 'TSERVER\\SQLSERVER')
+    database = os.getenv('DB_DATABASE', 'DBClassico')
+    user = os.getenv('DB_USER', 'GIWINDOWS')
+    password = os.getenv('DB_PASSWORD', 'GIWINDOWS')
+
     conn_str = (
         r'Driver={ODBC Driver 18 for SQL Server};'
-        r'Server=TSERVER\SQLSERVER;'
-        r'Database=DBClassico;'
-        r'Trusted_Connection=yes;'
+        f'Server={server};'
+        f'Database={database};'
+        f'UID={user};'
+        f'PWD={password};'
         r'TrustServerCertificate=yes;'
     )
     return pyodbc.connect(conn_str)
