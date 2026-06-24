@@ -12,6 +12,7 @@ interface ResumoData {
   totais_semanas: Record<string, number>
   wednesdays: string[]
   semanas: string[]
+  total_vencido: number
 }
 
 interface SummaryData {
@@ -66,9 +67,8 @@ function App() {
         const columns = getWeekColumns(response.data.semanas)
         setWeekColumns(columns)
 
-        // Calcular total vencido (semana 25/2026)
-        const vencido = response.data.totais_semanas['semana_25_2026'] || 0
-        setTotalVencido(vencido)
+        // Total vencido calculado no backend (faturas com data de vencimento <= hoje)
+        setTotalVencido(response.data.total_vencido || 0)
 
         const summaryResponse = await axios.get<SummaryData>('/api/resumo')
         setSummary(summaryResponse.data)

@@ -66,7 +66,7 @@ def get_pagamentos_por_semana():
         conn = get_connection()
     except Exception as e:
         print(f"Erro de conexao: {e}")
-        return {}, []
+        return {}, [], 0.0
 
     cursor = conn.cursor()
 
@@ -95,10 +95,13 @@ def get_pagamentos_por_semana():
     except Exception as e:
         print(f"Erro ao executar query: {e}")
         conn.close()
-        return {}, []
+        return {}, [], 0.0
 
     pagamentos = defaultdict(lambda: defaultdict(float))
     documentos_por_semana = defaultdict(lambda: defaultdict(int))
+
+    today = datetime.now().date()
+    total_vencido = 0.0
 
     for row in rows:
         codigo_conta = row[0]
@@ -111,17 +114,22 @@ def get_pagamentos_por_semana():
 
         week_num = calculate_week_number(data_vencimento)
 
+        # Somar faturas efetivamente vencidas (data de vencimento <= hoje)
+        venc = data_vencimento.date() if isinstance(data_vencimento, datetime) else data_vencimento
+        if venc is not None and venc <= today:
+            total_vencido += valor
+
         pagamentos[codigo_conta][f"semana_{week_num}"] += valor
         pagamentos[codigo_conta]["nome"] = nome_fornecedor
         documentos_por_semana[codigo_conta][f"semana_{week_num}"] += 1
 
     conn.close()
 
-    return dict(pagamentos), get_wednesday_dates()
+    return dict(pagamentos), get_wednesday_dates(), total_vencido
 
 def get_resumo_pagamentos():
     """Retorna totais por semana com dados formatados."""
-    pagamentos, wednesdays = get_pagamentos_por_semana()
+    pagamentos, wednesdays, total_vencido = get_pagamentos_por_semana()
 
     totais_semanas = defaultdict(float)
     todas_as_semanas = set()
@@ -146,5 +154,6 @@ def get_resumo_pagamentos():
         "pagamentos": pagamentos,
         "totais_semanas": dict(totais_semanas),
         "wednesdays": [d.isoformat() for d in wednesdays],
-        "semanas": semanas_ordenadas
+        "semanas": semanas_ordenadas,
+        "total_vencido": total_vencido
     }
