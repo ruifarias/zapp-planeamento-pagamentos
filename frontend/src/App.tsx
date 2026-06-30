@@ -194,36 +194,38 @@ function App() {
               <td className="col-forn"><strong>{cheque.codigo_entidade}</strong></td>
               <td className="col-nome">{cheque.numero_documento} {cheque.entidade_sacada}</td>
               {weekColumns.map((week) => {
-                const isWeekMatch = cheque.semana === week.replace('semana_', '')
+                const weekKey = week.replace('semana_', '')
+                const isWeekMatch = cheque.semana === weekKey
                 const valor = isWeekMatch ? cheque.valor : 0
                 return (
                   <td key={week} className="col-semana text-right">
-                    {valor > 0 ? formatCurrency(-valor) : '-'}
+                    {valor > 0 ? formatCurrency(valor) : '-'}
                   </td>
                 )
               })}
               <td className="col-total text-right">
-                <strong>{formatCurrency(-cheque.valor)}</strong>
+                <strong>{formatCurrency(cheque.valor)}</strong>
               </td>
             </tr>
           ))}
           <tr className="totals-row">
             <td colSpan={2} className="col-total"><strong>TOTAL</strong></td>
             {weekColumns.map((week) => {
+              const weekKey = week.replace('semana_', '')
               const total = cheques.reduce((acc, cheque) => {
-                if (cheque.semana === week.replace('semana_', '')) {
+                if (cheque.semana === weekKey) {
                   return acc + cheque.valor
                 }
                 return acc
               }, 0)
               return (
                 <td key={week} className="col-semana text-right">
-                  <strong>{total > 0 ? formatCurrency(-total) : '-'}</strong>
+                  <strong>{total > 0 ? formatCurrency(total) : '-'}</strong>
                 </td>
               )
             })}
             <td className="col-total text-right">
-              <strong>{formatCurrency(-totalCheques)}</strong>
+              <strong>{formatCurrency(totalCheques)}</strong>
             </td>
           </tr>
         </tbody>
