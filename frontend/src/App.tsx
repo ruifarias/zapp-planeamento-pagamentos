@@ -181,7 +181,6 @@ function App() {
             <th className="col-forn">Forn. Nº</th>
             <th className="col-nome">Cheque Pré-datado Nº - Entidade Sacada</th>
             <th className="col-semana">Data Vencimento</th>
-            <th className="col-semana">Local Emissão</th>
             <th className="col-total">Valor</th>
           </tr>
         </thead>
@@ -191,14 +190,13 @@ function App() {
               <td className="col-forn"><strong>{cheque.codigo_entidade}</strong></td>
               <td className="col-nome">{cheque.numero_documento} {cheque.entidade_sacada}</td>
               <td className="col-semana">{formatDate(new Date(cheque.data_documento))}</td>
-              <td className="col-semana">{cheque.local_emissao || '-'}</td>
               <td className="col-total text-right">
                 <strong>{formatCurrency(cheque.valor)}</strong>
               </td>
             </tr>
           ))}
           <tr className="totals-row">
-            <td colSpan={4} className="col-total"><strong>TOTAL</strong></td>
+            <td colSpan={3} className="col-total"><strong>TOTAL</strong></td>
             <td className="col-total text-right">
               <strong>{formatCurrency(totalCheques)}</strong>
             </td>
