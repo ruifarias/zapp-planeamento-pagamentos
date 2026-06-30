@@ -22,14 +22,23 @@ def get_connection():
 def calculate_week_number(data_vencimento):
     """Calcula a semana ISO de vencimento.
     Retorna string no formato 'XX_YYYY' (semana_ano).
-    Faturas vencidas (data <= hoje) são agrupadas na semana atual.
+    Documentos vencidos (data <= hoje) são agrupados na semana atual.
+    Inclui créditos vencidos que devem aparecer no planeamento.
     """
     today = datetime.now().date()
 
-    if isinstance(data_vencimento, datetime):
-        data_vencimento = data_vencimento.date()
+    try:
+        if isinstance(data_vencimento, datetime):
+            data_vencimento = data_vencimento.date()
+        elif isinstance(data_vencimento, str):
+            data_vencimento = datetime.strptime(data_vencimento, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        # Se não conseguir converter, agrupa na semana atual por segurança
+        iso_calendar = today.isocalendar()
+        return f"{iso_calendar[1]}_{iso_calendar[0]}"
 
-    # Se a fatura já venceu, agrupa na semana atual
+    # Se o documento já venceu, agrupa na semana atual
+    # Esto aplica-se a faturas, notas de crédito e qualquer outro documento
     if data_vencimento <= today:
         iso_calendar = today.isocalendar()
         year = iso_calendar[0]  # Ano
