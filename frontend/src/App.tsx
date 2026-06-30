@@ -38,7 +38,8 @@ function formatCurrency(value: number): string {
 }
 
 function formatWeekLabel(weekKey: string): JSX.Element {
-  const parts = weekKey.replace('semana_', '').split('_')
+  const cleaned = weekKey.replace('semana_', '')
+  const parts = cleaned.split('_')
   const weekNumber = parseInt(parts[0], 10)
   const year = parseInt(parts[1], 10)
   return (
@@ -194,8 +195,7 @@ function App() {
               <td className="col-forn"><strong>{cheque.codigo_entidade}</strong></td>
               <td className="col-nome">{cheque.numero_documento} {formatDate(new Date(cheque.data_emissao))}</td>
               {weekColumns.map((week) => {
-                const weekKey = week.replace('semana_', '')
-                const isWeekMatch = cheque.semana === weekKey
+                const isWeekMatch = cheque.semana === week.replace('semana_', '')
                 const valor = isWeekMatch ? cheque.valor : 0
                 return (
                   <td key={week} className="col-semana text-right">

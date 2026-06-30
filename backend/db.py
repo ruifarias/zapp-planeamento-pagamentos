@@ -44,7 +44,7 @@ def calculate_week_number(data_vencimento):
 
 def get_weeks_iso(num_weeks=16):
     """Retorna lista de 16 semanas ISO começando da semana atual.
-    Formato: ['27_2026', '28_2026', ..., '42_2026']
+    Formato: ['semana_27_2026', 'semana_28_2026', ..., 'semana_42_2026']
     """
     today = datetime.now().date()
     iso_cal = today.isocalendar()
@@ -61,7 +61,7 @@ def get_weeks_iso(num_weeks=16):
             week_num -= 53
             year += 1
 
-        weeks.append(f"{week_num}_{year}")
+        weeks.append(f"semana_{week_num}_{year}")
 
     return weeks
 
