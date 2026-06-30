@@ -42,6 +42,29 @@ def calculate_week_number(data_vencimento):
     week_num = iso_calendar[1]
     return f"{week_num}_{year}"
 
+def get_weeks_iso(num_weeks=16):
+    """Retorna lista de 16 semanas ISO começando da semana atual.
+    Formato: ['27_2026', '28_2026', ..., '42_2026']
+    """
+    today = datetime.now().date()
+    iso_cal = today.isocalendar()
+    current_week = iso_cal[1]
+    current_year = iso_cal[0]
+
+    weeks = []
+    for i in range(num_weeks):
+        week_num = current_week + i
+        year = current_year
+
+        # Se semana passar de 53, volta para ano seguinte
+        if week_num > 53:
+            week_num -= 53
+            year += 1
+
+        weeks.append(f"{week_num}_{year}")
+
+    return weeks
+
 def get_wednesday_dates(num_weeks=13):
     """Retorna as datas das próximas quartas-feiras (data de pagamento)."""
     today = datetime.now().date()
@@ -131,8 +154,9 @@ def get_resumo_pagamentos():
     """Retorna totais por semana com dados formatados."""
     pagamentos, wednesdays, total_vencido = get_pagamentos_por_semana()
 
+    # Usar 16 semanas ISO começando da semana atual
+    semanas_ordenadas = get_weeks_iso(16)
     totais_semanas = defaultdict(float)
-    todas_as_semanas = set()
 
     # Calcular semanas e totais
     for fornecedor_data in pagamentos.values():
@@ -141,14 +165,7 @@ def get_resumo_pagamentos():
             if key != "nome" and key != "total_divida" and key.startswith("semana_"):
                 totais_semanas[key] += valor
                 total_fornecedor += valor
-                todas_as_semanas.add(key)
         fornecedor_data["total_divida"] = total_fornecedor
-
-    # Ordenar semanas por ano e depois por número de semana
-    semanas_ordenadas = sorted(todas_as_semanas, key=lambda x: (
-        int(x.replace("semana_", "").split("_")[1]),
-        int(x.replace("semana_", "").split("_")[0])
-    ))
 
     return {
         "pagamentos": pagamentos,
@@ -215,11 +232,13 @@ def get_cheques_predatados_por_semana():
         week_key = f"{week_num}_{year}"
 
         cheque_num_display = f"{codigo_movimento_caixa} {numero_movimento_caixa}" if numero_movimento_caixa else codigo_movimento_caixa
+        data_str = data_emissao.isoformat() if hasattr(data_emissao, 'isoformat') else str(data_emissao)
 
         cheques.append({
             "codigo_entidade": codigo_entidade,
             "numero_documento": cheque_num_display,
             "entidade_sacada": entidade_sacada,
+            "data_emissao": data_str,
             "valor": valor,
             "semana": week_key
         })

@@ -179,7 +179,7 @@ function App() {
         <thead>
           <tr>
             <th className="col-forn">Forn. Nº</th>
-            <th className="col-nome">Cheque Pré-datado Nº - Entidade Sacada</th>
+            <th className="col-nome">Cheque Pré-Datado Nº - Data</th>
             {weekColumns.map((col) => (
               <th key={col} className="col-semana">
                 {formatWeekLabel(col)}
@@ -192,7 +192,7 @@ function App() {
           {cheques.map((cheque, idx) => (
             <tr key={idx}>
               <td className="col-forn"><strong>{cheque.codigo_entidade}</strong></td>
-              <td className="col-nome">{cheque.numero_documento} {cheque.entidade_sacada}</td>
+              <td className="col-nome">{cheque.numero_documento} {formatDate(new Date(cheque.data_emissao))}</td>
               {weekColumns.map((week) => {
                 const weekKey = week.replace('semana_', '')
                 const isWeekMatch = cheque.semana === weekKey
