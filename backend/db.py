@@ -159,12 +159,12 @@ def get_resumo_pagamentos():
     }
 
 def get_cheques_predatados_por_semana():
-    """Retorna cheques pré-datados agrupados por semana de vencimento."""
+    """Retorna cheques pré-datados como lista ordenada por data de vencimento."""
     try:
         conn = get_connection()
     except Exception as e:
         print(f"Erro de conexao: {e}")
-        return {}, []
+        return [], 0.0
 
     cursor = conn.cursor()
 
@@ -190,11 +190,10 @@ def get_cheques_predatados_por_semana():
     except Exception as e:
         print(f"Erro ao executar query: {e}")
         conn.close()
-        return {}, []
+        return [], 0.0
 
-    cheques_por_semana = defaultdict(lambda: defaultdict(list))
-    totais_semanas = defaultdict(float)
-    todas_as_semanas = set()
+    cheques = []
+    total_geral = 0.0
 
     for row in rows:
         codigo_entidade = row[0]
@@ -209,27 +208,25 @@ def get_cheques_predatados_por_semana():
         if valor == 0:
             continue
 
-        week_num = calculate_week_number(data_documento)
-        todas_as_semanas.add(week_num)
+        # Calculate week based on the actual due date (data_documento)
+        iso_cal = data_documento.isocalendar() if hasattr(data_documento, 'isocalendar') else data_documento.date().isocalendar()
+        week_num = iso_cal[1]
+        year = iso_cal[0]
 
         cheque_num_display = f"{codigo_movimento_caixa} {numero_movimento_caixa}" if numero_movimento_caixa else codigo_movimento_caixa
 
-        cheques_por_semana[codigo_entidade][f"semana_{week_num}"].append({
+        cheques.append({
+            "codigo_entidade": codigo_entidade,
             "numero_documento": cheque_num_display,
             "data_documento": data_documento.isoformat() if hasattr(data_documento, 'isoformat') else str(data_documento),
             "valor": -valor,  # Negativo para representar divida
             "entidade_sacada": entidade_sacada,
-            "local_emissao": local_emissao
+            "local_emissao": local_emissao,
+            "semana": f"{week_num}_{year}"
         })
 
-        totais_semanas[f"semana_{week_num}"] += valor
-
-    # Ordenar semanas
-    semanas_ordenadas = sorted(todas_as_semanas, key=lambda x: (
-        int(x.replace("semana_", "").split("_")[1]),
-        int(x.replace("semana_", "").split("_")[0])
-    ))
+        total_geral += valor
 
     conn.close()
 
-    return dict(cheques_por_semana), semanas_ordenadas, dict(totais_semanas)
+    return cheques, total_geral
