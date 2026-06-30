@@ -180,8 +180,8 @@ function App() {
       <table className="pagamentos-table">
         <thead>
           <tr>
-            <th className="col-forn">Cheque Nº</th>
-            <th className="col-nome">Entidade Sacada</th>
+            <th className="col-forn">Forn. Nº</th>
+            <th className="col-nome">Cheque Pré-datado Nº - Entidade Sacada</th>
             {chequesWeeks.map((col) => (
               <th key={col} className="col-semana">
                 {formatWeekLabel(col.replace('semana_', ''))}
@@ -197,10 +197,15 @@ function App() {
               return acc + chequesToday.reduce((s: number, c: any) => s + (c.valor || 0), 0)
             }, 0)
 
+            // Get first cheque to display info (they all have same codigo_entidade)
+            const firstCheque = Object.values(semanas_data).flat().find((c: any) => c && c.numero_documento)
+
             return (
               <tr key={codigo}>
-                <td className="col-forn"><strong>{codigo.slice(-4)}</strong></td>
-                <td className="col-nome">{semanas_data[`semana_${chequesWeeks[0]?.replace('semana_', '')}`]?.[0]?.entidade_sacada || '-'}</td>
+                <td className="col-forn"><strong>{codigo}</strong></td>
+                <td className="col-nome">
+                  {firstCheque ? `${firstCheque.numero_documento} ${firstCheque.entidade_sacada}` : '-'}
+                </td>
                 {chequesWeeks.map((week) => {
                   const chequesToday = semanas_data[`semana_${week.replace('semana_', '')}`] || []
                   const valor = chequesToday.reduce((s: number, c: any) => s + (c.valor || 0), 0)

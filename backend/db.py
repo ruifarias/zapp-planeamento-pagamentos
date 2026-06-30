@@ -173,6 +173,8 @@ def get_cheques_predatados_por_semana():
         Codigo_Entidade,
         Data_Documento AS Data_Emissao,
         Numero_Documento,
+        Codigo_Movimento_Caixa,
+        Numero_Movimento_Caixa,
         Valor,
         Entidade_Sacada,
         Local_Emissao
@@ -198,9 +200,11 @@ def get_cheques_predatados_por_semana():
         codigo_entidade = row[0]
         data_documento = row[1]
         numero_documento = row[2]
-        valor = float(row[3]) if row[3] else 0.0
-        entidade_sacada = row[4]
-        local_emissao = row[5]
+        codigo_movimento_caixa = row[3]
+        numero_movimento_caixa = row[4]
+        valor = float(row[5]) if row[5] else 0.0
+        entidade_sacada = row[6]
+        local_emissao = row[7]
 
         if valor == 0:
             continue
@@ -208,8 +212,10 @@ def get_cheques_predatados_por_semana():
         week_num = calculate_week_number(data_documento)
         todas_as_semanas.add(week_num)
 
+        cheque_num_display = f"{codigo_movimento_caixa} {numero_movimento_caixa}" if numero_movimento_caixa else codigo_movimento_caixa
+
         cheques_por_semana[codigo_entidade][f"semana_{week_num}"].append({
-            "numero_documento": numero_documento,
+            "numero_documento": cheque_num_display,
             "data_documento": data_documento.isoformat() if hasattr(data_documento, 'isoformat') else str(data_documento),
             "valor": -valor,  # Negativo para representar divida
             "entidade_sacada": entidade_sacada,
