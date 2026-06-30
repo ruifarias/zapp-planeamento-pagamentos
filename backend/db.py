@@ -154,8 +154,8 @@ def get_resumo_pagamentos():
     """Retorna totais por semana com dados formatados."""
     pagamentos, wednesdays, total_vencido = get_pagamentos_por_semana()
 
-    # Usar 16 semanas ISO começando da semana atual
-    semanas_ordenadas = get_weeks_iso(16)
+    # Usar 13 semanas ISO começando da semana atual (atual + 12 seguintes)
+    semanas_ordenadas = get_weeks_iso(13)
     totais_semanas = defaultdict(float)
 
     # Calcular semanas e totais
