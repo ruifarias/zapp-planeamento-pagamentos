@@ -35,6 +35,18 @@ async def get_resumo():
         "wednesdays": wednesdays
     }
 
+@app.get("/api/cheques-predatados")
+async def get_cheques_predatados():
+    cheques_por_semana, semanas_ordenadas, totais_semanas = db.get_cheques_predatados_por_semana()
+    total_geral = sum(totais_semanas.values())
+
+    return {
+        "cheques": cheques_por_semana,
+        "semanas": semanas_ordenadas,
+        "totais_semanas": totais_semanas,
+        "total_geral": total_geral
+    }
+
 dist_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 if os.path.exists(dist_dir):
     app.mount("/", StaticFiles(directory=dist_dir, html=True), name="static")

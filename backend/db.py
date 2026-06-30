@@ -157,3 +157,73 @@ def get_resumo_pagamentos():
         "semanas": semanas_ordenadas,
         "total_vencido": total_vencido
     }
+
+def get_cheques_predatados_por_semana():
+    """Retorna cheques pré-datados agrupados por semana de vencimento."""
+    try:
+        conn = get_connection()
+    except Exception as e:
+        print(f"Erro de conexao: {e}")
+        return {}, []
+
+    cursor = conn.cursor()
+
+    query = """
+    SELECT
+        Codigo_Entidade,
+        Data_Documento AS Data_Emissao,
+        Numero_Documento,
+        Valor,
+        Entidade_Sacada,
+        Local_Emissao
+    FROM TB0001TesMovCaixa
+    WHERE Codigo_Movimento_Caixa = 'CHP'
+        AND Conciliado = 'N'
+    ORDER BY Data_Documento
+    """
+
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    except Exception as e:
+        print(f"Erro ao executar query: {e}")
+        conn.close()
+        return {}, []
+
+    cheques_por_semana = defaultdict(lambda: defaultdict(list))
+    totais_semanas = defaultdict(float)
+    todas_as_semanas = set()
+
+    for row in rows:
+        codigo_entidade = row[0]
+        data_documento = row[1]
+        numero_documento = row[2]
+        valor = float(row[3]) if row[3] else 0.0
+        entidade_sacada = row[4]
+        local_emissao = row[5]
+
+        if valor == 0:
+            continue
+
+        week_num = calculate_week_number(data_documento)
+        todas_as_semanas.add(week_num)
+
+        cheques_por_semana[codigo_entidade][f"semana_{week_num}"].append({
+            "numero_documento": numero_documento,
+            "data_documento": data_documento.isoformat() if hasattr(data_documento, 'isoformat') else str(data_documento),
+            "valor": -valor,  # Negativo para representar divida
+            "entidade_sacada": entidade_sacada,
+            "local_emissao": local_emissao
+        })
+
+        totais_semanas[f"semana_{week_num}"] += valor
+
+    # Ordenar semanas
+    semanas_ordenadas = sorted(todas_as_semanas, key=lambda x: (
+        int(x.replace("semana_", "").split("_")[1]),
+        int(x.replace("semana_", "").split("_")[0])
+    ))
+
+    conn.close()
+
+    return dict(cheques_por_semana), semanas_ordenadas, dict(totais_semanas)

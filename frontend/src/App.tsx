@@ -57,6 +57,9 @@ function App() {
   const [summary, setSummary] = useState<SummaryData | null>(null)
   const [weekColumns, setWeekColumns] = useState<string[]>([])
   const [totalVencido, setTotalVencido] = useState<number>(0)
+  const [cheques, setCheques] = useState<Record<string, any>>({})
+  const [chequesWeeks, setChequesWeeks] = useState<string[]>([])
+  const [totalCheques, setTotalCheques] = useState<number>(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,6 +75,12 @@ function App() {
 
         const summaryResponse = await axios.get<SummaryData>('/api/resumo')
         setSummary(summaryResponse.data)
+
+        // Buscar cheques pré-datados
+        const chequesResponse = await axios.get('/api/cheques-predatados')
+        setCheques(chequesResponse.data.cheques)
+        setChequesWeeks(chequesResponse.data.semanas)
+        setTotalCheques(chequesResponse.data.total_geral || 0)
       } catch (error) {
         console.error('Erro ao buscar dados:', error)
       }
@@ -165,6 +174,70 @@ function App() {
     </>
   )
 
+  const renderChequesTable = () => (
+    <>
+      <div className="table-title">FORNECEDORES - CHEQUES PRÉ-DATADOS</div>
+      <table className="pagamentos-table">
+        <thead>
+          <tr>
+            <th className="col-forn">Cheque Nº</th>
+            <th className="col-nome">Entidade Sacada</th>
+            {chequesWeeks.map((col) => (
+              <th key={col} className="col-semana">
+                {formatWeekLabel(col.replace('semana_', ''))}
+              </th>
+            ))}
+            <th className="col-total">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(cheques).map(([codigo, semanas_data]: any) => {
+            const total = chequesWeeks.reduce((acc, week) => {
+              const chequesToday = semanas_data[`semana_${week.replace('semana_', '')}`] || []
+              return acc + chequesToday.reduce((s: number, c: any) => s + (c.valor || 0), 0)
+            }, 0)
+
+            return (
+              <tr key={codigo}>
+                <td className="col-forn"><strong>{codigo.slice(-4)}</strong></td>
+                <td className="col-nome">{semanas_data[`semana_${chequesWeeks[0]?.replace('semana_', '')}`]?.[0]?.entidade_sacada || '-'}</td>
+                {chequesWeeks.map((week) => {
+                  const chequesToday = semanas_data[`semana_${week.replace('semana_', '')}`] || []
+                  const valor = chequesToday.reduce((s: number, c: any) => s + (c.valor || 0), 0)
+                  return (
+                    <td key={week} className="col-semana text-right">
+                      {valor !== 0 ? formatCurrency(valor) : '-'}
+                    </td>
+                  )
+                })}
+                <td className="col-total text-right">
+                  <strong>{formatCurrency(total)}</strong>
+                </td>
+              </tr>
+            )
+          })}
+          <tr className="totals-row">
+            <td colSpan={2} className="col-total"><strong>TOTAL</strong></td>
+            {chequesWeeks.map((week) => {
+              const total = Object.entries(cheques).reduce((acc, [_, semanas_data]: any) => {
+                const chequesToday = semanas_data[`semana_${week.replace('semana_', '')}`] || []
+                return acc + chequesToday.reduce((s: number, c: any) => s + (c.valor || 0), 0)
+              }, 0)
+              return (
+                <td key={week} className="col-semana text-right">
+                  <strong>{total !== 0 ? formatCurrency(total) : '-'}</strong>
+                </td>
+              )
+            })}
+            <td className="col-total text-right">
+              <strong>{formatCurrency(totalCheques)}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  )
+
   return (
     <div className="pagamentos-container">
       <header className="pagamentos-header">
@@ -185,6 +258,7 @@ function App() {
         {renderTable(fornecedoresTransferenciaComDivida, 'FORNECEDORES - TRANSFERÊNCIA BANCÁRIA')}
         {renderTable(fornecedoresDebito, 'FORNECEDORES - DÉBITO DIRECTO')}
         {renderTable(fornecedoresTransferenciaComCredito, 'FORNECEDORES - COM CRÉDITOS')}
+        {chequesWeeks.length > 0 && renderChequesTable()}
       </div>
     </div>
   )
