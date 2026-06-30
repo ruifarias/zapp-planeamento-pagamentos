@@ -171,7 +171,7 @@ def get_cheques_predatados_por_semana():
     query = """
     SELECT
         Codigo_Entidade,
-        Data_Documento AS Data_Emissao,
+        Data_Emissao,
         Numero_Documento,
         Codigo_Movimento_Caixa,
         Numero_Movimento_Caixa,
@@ -181,7 +181,7 @@ def get_cheques_predatados_por_semana():
     FROM TB0001TesMovCaixa
     WHERE Codigo_Movimento_Caixa = 'CHP'
         AND Conciliado = 'N'
-    ORDER BY Data_Documento
+    ORDER BY Data_Emissao
     """
 
     try:
@@ -197,7 +197,7 @@ def get_cheques_predatados_por_semana():
 
     for row in rows:
         codigo_entidade = row[0]
-        data_documento = row[1]
+        data_emissao = row[1]
         numero_documento = row[2]
         codigo_movimento_caixa = row[3]
         numero_movimento_caixa = row[4]
@@ -208,8 +208,8 @@ def get_cheques_predatados_por_semana():
         if valor == 0:
             continue
 
-        # Calculate week based on the actual due date (data_documento)
-        iso_cal = data_documento.isocalendar() if hasattr(data_documento, 'isocalendar') else data_documento.date().isocalendar()
+        # Calculate week based on the due date (data_emissao)
+        iso_cal = data_emissao.isocalendar() if hasattr(data_emissao, 'isocalendar') else data_emissao.date().isocalendar()
         week_num = iso_cal[1]
         year = iso_cal[0]
 
@@ -218,7 +218,7 @@ def get_cheques_predatados_por_semana():
         cheques.append({
             "codigo_entidade": codigo_entidade,
             "numero_documento": cheque_num_display,
-            "data_documento": data_documento.isoformat() if hasattr(data_documento, 'isoformat') else str(data_documento),
+            "data_emissao": data_emissao.isoformat() if hasattr(data_emissao, 'isoformat') else str(data_emissao),
             "valor": -valor,  # Negativo para representar divida
             "entidade_sacada": entidade_sacada,
             "local_emissao": local_emissao,

@@ -189,7 +189,7 @@ function App() {
             <tr key={idx}>
               <td className="col-forn"><strong>{cheque.codigo_entidade}</strong></td>
               <td className="col-nome">{cheque.numero_documento} {cheque.entidade_sacada}</td>
-              <td className="col-semana">{formatDate(new Date(cheque.data_documento))}</td>
+              <td className="col-semana">{formatDate(new Date(cheque.data_emissao))}</td>
               <td className="col-total text-right">
                 <strong>{formatCurrency(cheque.valor)}</strong>
               </td>
