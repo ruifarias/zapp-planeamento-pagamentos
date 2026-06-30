@@ -159,12 +159,12 @@ def get_resumo_pagamentos():
     }
 
 def get_cheques_predatados_por_semana():
-    """Retorna cheques pré-datados como lista ordenada por data de vencimento."""
+    """Retorna cheques pré-datados agrupados por semana de vencimento."""
     try:
         conn = get_connection()
     except Exception as e:
         print(f"Erro de conexao: {e}")
-        return [], 0.0
+        return {}, [], {}, 0.0
 
     cursor = conn.cursor()
 
@@ -190,9 +190,11 @@ def get_cheques_predatados_por_semana():
     except Exception as e:
         print(f"Erro ao executar query: {e}")
         conn.close()
-        return [], 0.0
+        return {}, [], {}, 0.0
 
-    cheques = []
+    cheques_por_semana = defaultdict(lambda: defaultdict(list))
+    totais_semanas = defaultdict(float)
+    todas_as_semanas = set()
     total_geral = 0.0
 
     for row in rows:
@@ -212,21 +214,26 @@ def get_cheques_predatados_por_semana():
         iso_cal = data_emissao.isocalendar() if hasattr(data_emissao, 'isocalendar') else data_emissao.date().isocalendar()
         week_num = iso_cal[1]
         year = iso_cal[0]
+        week_key = f"{week_num}_{year}"
+        todas_as_semanas.add(week_key)
 
         cheque_num_display = f"{codigo_movimento_caixa} {numero_movimento_caixa}" if numero_movimento_caixa else codigo_movimento_caixa
 
-        cheques.append({
-            "codigo_entidade": codigo_entidade,
+        cheques_por_semana[codigo_entidade][f"semana_{week_key}"].append({
             "numero_documento": cheque_num_display,
-            "data_emissao": data_emissao.isoformat() if hasattr(data_emissao, 'isoformat') else str(data_emissao),
-            "valor": -valor,  # Negativo para representar divida
             "entidade_sacada": entidade_sacada,
-            "local_emissao": local_emissao,
-            "semana": f"{week_num}_{year}"
+            "valor": valor
         })
 
+        totais_semanas[f"semana_{week_key}"] += valor
         total_geral += valor
+
+    # Ordenar semanas
+    semanas_ordenadas = sorted(todas_as_semanas, key=lambda x: (
+        int(x.split("_")[1]),
+        int(x.split("_")[0])
+    ))
 
     conn.close()
 
-    return cheques, total_geral
+    return dict(cheques_por_semana), semanas_ordenadas, dict(totais_semanas), total_geral
