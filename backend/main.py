@@ -37,12 +37,10 @@ async def get_resumo():
 
 @app.get("/api/cheques-predatados")
 async def get_cheques_predatados():
-    cheques_por_semana, semanas_ordenadas, totais_semanas, total_geral = db.get_cheques_predatados_por_semana()
+    cheques, total_geral = db.get_cheques_predatados_por_semana()
 
     return {
-        "cheques": cheques_por_semana,
-        "semanas": semanas_ordenadas,
-        "totais_semanas": totais_semanas,
+        "cheques": cheques,
         "total_geral": total_geral
     }
 

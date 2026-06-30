@@ -57,8 +57,7 @@ function App() {
   const [summary, setSummary] = useState<SummaryData | null>(null)
   const [weekColumns, setWeekColumns] = useState<string[]>([])
   const [totalVencido, setTotalVencido] = useState<number>(0)
-  const [cheques, setCheques] = useState<Record<string, any>>({})
-  const [chequesWeeks, setChequesWeeks] = useState<string[]>([])
+  const [cheques, setCheques] = useState<any[]>([])
   const [totalCheques, setTotalCheques] = useState<number>(0)
 
   useEffect(() => {
@@ -79,7 +78,6 @@ function App() {
         // Buscar cheques pré-datados
         const chequesResponse = await axios.get('/api/cheques-predatados')
         setCheques(chequesResponse.data.cheques)
-        setChequesWeeks(chequesResponse.data.semanas)
         setTotalCheques(chequesResponse.data.total_geral || 0)
       } catch (error) {
         console.error('Erro ao buscar dados:', error)
@@ -182,49 +180,41 @@ function App() {
           <tr>
             <th className="col-forn">Forn. Nº</th>
             <th className="col-nome">Cheque Pré-datado Nº - Entidade Sacada</th>
-            {chequesWeeks.map((col) => (
+            {weekColumns.map((col) => (
               <th key={col} className="col-semana">
                 {formatWeekLabel(col)}
               </th>
             ))}
-            <th className="col-total">Total</th>
+            <th className="col-total">Total em Dívida</th>
           </tr>
         </thead>
         <tbody>
-          {Object.entries(cheques).map(([codigo, semanas_data]: any) => {
-            const total = chequesWeeks.reduce((acc, week) => {
-              const chequesToday = semanas_data[`semana_${week}`]?.reduce((s: number, c: any) => s + (c.valor || 0), 0) || 0
-              return acc + chequesToday
-            }, 0)
-
-            return (
-              <tr key={codigo}>
-                <td className="col-forn"><strong>{codigo}</strong></td>
-                <td className="col-nome">
-                  {chequesWeeks.map((week) => semanas_data[`semana_${week}`]?.[0]?.numero_documento).filter(Boolean)[0] || '-'}
-                  {chequesWeeks.map((week) => semanas_data[`semana_${week}`]?.[0]?.entidade_sacada).filter(Boolean)[0] ? ` ${chequesWeeks.map((week) => semanas_data[`semana_${week}`]?.[0]?.entidade_sacada).filter(Boolean)[0]}` : ''}
-                </td>
-                {chequesWeeks.map((week) => {
-                  const chequesToday = semanas_data[`semana_${week}`] || []
-                  const valor = chequesToday.reduce((s: number, c: any) => s + (c.valor || 0), 0)
-                  return (
-                    <td key={week} className="col-semana text-right">
-                      {valor > 0 ? formatCurrency(-valor) : '-'}
-                    </td>
-                  )
-                })}
-                <td className="col-total text-right">
-                  <strong>{formatCurrency(-total)}</strong>
-                </td>
-              </tr>
-            )
-          })}
+          {cheques.map((cheque, idx) => (
+            <tr key={idx}>
+              <td className="col-forn"><strong>{cheque.codigo_entidade}</strong></td>
+              <td className="col-nome">{cheque.numero_documento} {cheque.entidade_sacada}</td>
+              {weekColumns.map((week) => {
+                const isWeekMatch = cheque.semana === week.replace('semana_', '')
+                const valor = isWeekMatch ? cheque.valor : 0
+                return (
+                  <td key={week} className="col-semana text-right">
+                    {valor > 0 ? formatCurrency(-valor) : '-'}
+                  </td>
+                )
+              })}
+              <td className="col-total text-right">
+                <strong>{formatCurrency(-cheque.valor)}</strong>
+              </td>
+            </tr>
+          ))}
           <tr className="totals-row">
             <td colSpan={2} className="col-total"><strong>TOTAL</strong></td>
-            {chequesWeeks.map((week) => {
-              const total = Object.entries(cheques).reduce((acc, [_, semanas_data]: any) => {
-                const chequesToday = semanas_data[`semana_${week}`]?.reduce((s: number, c: any) => s + (c.valor || 0), 0) || 0
-                return acc + chequesToday
+            {weekColumns.map((week) => {
+              const total = cheques.reduce((acc, cheque) => {
+                if (cheque.semana === week.replace('semana_', '')) {
+                  return acc + cheque.valor
+                }
+                return acc
               }, 0)
               return (
                 <td key={week} className="col-semana text-right">
@@ -261,7 +251,7 @@ function App() {
         {renderTable(fornecedoresTransferenciaComDivida, 'FORNECEDORES - TRANSFERÊNCIA BANCÁRIA')}
         {renderTable(fornecedoresDebito, 'FORNECEDORES - DÉBITO DIRECTO')}
         {renderTable(fornecedoresTransferenciaComCredito, 'FORNECEDORES - COM CRÉDITOS')}
-        {chequesWeeks.length > 0 && renderChequesTable()}
+        {cheques.length > 0 && renderChequesTable()}
       </div>
     </div>
   )
